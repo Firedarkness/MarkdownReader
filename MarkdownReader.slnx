@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="MarkdownHtmlRenderer/MarkdownHtmlRenderer.csproj" />
   <Project Path="MarkdownReader/MarkdownReader.csproj" />
 </Solution>

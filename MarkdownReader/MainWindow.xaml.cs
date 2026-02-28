@@ -3,13 +3,11 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
 using Markdig;
 using Markdig.Syntax;
 using Microsoft.Win32;
 using MarkdownReader.Models;
+using System.Windows.Input;
 
 namespace MarkdownReader;
 
@@ -20,7 +18,6 @@ public partial class MainWindow : Window
 {
     private string? _currentFilePath;
     private string? _currentDirectory;
-    private bool _isCtrlPressed;
 
     public ObservableCollection<HeadingItem> Headings { get; } = new();
 
@@ -28,28 +25,6 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         DataContext = this;
-        
-        // 监听键盘事件
-        KeyDown += MainWindow_KeyDown;
-        KeyUp += MainWindow_KeyUp;
-    }
-
-    private void MainWindow_KeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl)
-        {
-            _isCtrlPressed = true;
-            StatusText.Text = "按住Ctrl并点击链接可打开";
-        }
-    }
-
-    private void MainWindow_KeyUp(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl)
-        {
-            _isCtrlPressed = false;
-            StatusText.Text = string.IsNullOrEmpty(_currentFilePath) ? "就绪" : "已加载";
-        }
     }
 
     private void OpenCommand_Executed(object sender, ExecutedRoutedEventArgs e)
@@ -73,15 +48,20 @@ public partial class MainWindow : Window
         try
         {
             var markdown = File.ReadAllText(filePath);
+            var directory = Path.GetDirectoryName(filePath);
+            
+            // 设置基础目录（用于解析相对路径图片）
+            MarkdownViewer.BaseDirectory = directory;
             MarkdownViewer.Markdown = markdown;
+            MarkdownViewer.LinkClickCommand = HandleHyperlinkClick;
+            
             _currentFilePath = filePath;
-            _currentDirectory = Path.GetDirectoryName(filePath);
+            _currentDirectory = directory;
 
             // 解析标题
             ParseHeadings(markdown);
 
-            // 显示侧边栏
-            SidebarColumn.Width = new GridLength(0);
+            // 显示按钮
             RefreshButton.Visibility = Visibility.Visible;
             ToggleSidebarButton.Visibility = Visibility.Visible;
 
@@ -106,7 +86,9 @@ public partial class MainWindow : Window
 
         try
         {
-            var pipeline = new MarkdownPipelineBuilder().UseAutoLinks().Build();
+            var pipeline = new MarkdownPipelineBuilder()
+                .UseAutoLinks()
+                .Build();
             var document = Markdig.Markdown.Parse(markdown, pipeline);
 
             foreach (var block in document.Descendants<HeadingBlock>())
@@ -114,8 +96,7 @@ public partial class MainWindow : Window
                 var heading = new HeadingItem
                 {
                     Level = block.Level,
-                    Text = block.Inline?.FirstChild?.ToString() ?? "",
-                    Anchor = $"heading-{Headings.Count}"
+                    Text = block.Inline?.FirstChild?.ToString() ?? ""
                 };
                 Headings.Add(heading);
             }
@@ -130,46 +111,8 @@ public partial class MainWindow : Window
     {
         if (sender is Button button && button.Tag is HeadingItem heading)
         {
-            // 滚动到对应标题位置
-            ScrollToHeading(heading.Text);
-        }
-    }
-
-    private void ScrollToHeading(string headingText)
-    {
-        if (MarkdownViewer.Document == null) return;
-
-        // 在FlowDocument中查找包含标题文本的段落
-        var scrollViewer = FindScrollViewer(MarkdownViewer);
-        if (scrollViewer == null) return;
-
-        // 遍历文档内容查找标题
-        foreach (var block in MarkdownViewer.Document.Blocks)
-        {
-            if (block is Section section)
-            {
-                foreach (var sectionBlock in section.Blocks)
-                {
-                    if (sectionBlock is Paragraph para)
-                    {
-                        var text = new TextRange(para.ContentStart, para.ContentEnd).Text;
-                        if (text.Contains(headingText))
-                        {
-                            sectionBlock.BringIntoView();
-                            return;
-                        }
-                    }
-                }
-            }
-            else if (block is Paragraph paragraph)
-            {
-                var text = new TextRange(paragraph.ContentStart, paragraph.ContentEnd).Text;
-                if (text.Contains(headingText))
-                {
-                    block.BringIntoView();
-                    return;
-                }
-            }
+            // 使用标题文本进行跳转
+            MarkdownViewer.ScrollToHeadingText(heading.Text);
         }
     }
 
@@ -229,7 +172,7 @@ public partial class MainWindow : Window
 使用技术:
 - WPF (.NET 10)
 - Markdig
-- Markdig.Wpf",
+- WebView2",
             "关于",
             MessageBoxButton.OK,
             MessageBoxImage.Information);
@@ -237,58 +180,35 @@ public partial class MainWindow : Window
 
     private void ScrollToTop_Click(object sender, RoutedEventArgs e)
     {
-        if (MarkdownViewer.Document != null)
-        {
-            var scrollViewer = FindScrollViewer(MarkdownViewer);
-            if (scrollViewer != null)
-            {
-                scrollViewer.ScrollToTop();
-            }
-        }
+        MarkdownViewer.ScrollToTop();
     }
 
     private void ScrollToEnd_Click(object sender, RoutedEventArgs e)
     {
-        if (MarkdownViewer.Document != null)
-        {
-            var scrollViewer = FindScrollViewer(MarkdownViewer);
-            if (scrollViewer != null)
-            {
-                scrollViewer.ScrollToEnd();
-            }
-        }
-    }
-
-    private static ScrollViewer? FindScrollViewer(DependencyObject parent)
-    {
-        if (parent is ScrollViewer scrollViewer)
-            return scrollViewer;
-
-        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
-        {
-            var child = VisualTreeHelper.GetChild(parent, i);
-            var result = FindScrollViewer(child);
-            if (result != null)
-                return result;
-        }
-        return null;
+        MarkdownViewer.ScrollToEnd();
     }
 
     /// <summary>
-    /// 处理MarkdownViewer中的超链接点击
+    /// 处理超链接点击
     /// </summary>
-    public void HandleHyperlinkClick(string url)
+    private void HandleHyperlinkClick(string url)
     {
-        if (!_isCtrlPressed)
-            return;
-
         try
         {
             // 判断是否为Markdown文件链接
             string? filePath = null;
 
+            // 处理虚拟主机路径 (http://local.markdown/...)
+            if (url.StartsWith("http://local.markdown/", StringComparison.OrdinalIgnoreCase))
+            {
+                var relativePath = url.Substring("http://local.markdown/".Length);
+                if (_currentDirectory != null)
+                {
+                    filePath = Path.GetFullPath(Path.Combine(_currentDirectory, relativePath));
+                }
+            }
             // 处理相对路径
-            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            else if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
             {
                 // 相对路径，基于当前文件目录解析
                 if (_currentDirectory != null)

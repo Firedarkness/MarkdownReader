@@ -4,8 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MarkdownReader"
-        xmlns:localControl="clr-namespace:MarkdownReader.Controls"
-        xmlns:mdxam="clr-namespace:Markdig.Wpf;assembly=Markdig.Wpf"
+        xmlns:renderer="clr-namespace:MarkdownHtmlRenderer;assembly=MarkdownHtmlRenderer"
         mc:Ignorable="d"
         Title="Markdown Reader" Height="600" Width="900"
         WindowStartupLocation="CenterScreen"
@@ -183,10 +182,9 @@
                 <Border.Effect>
                     <DropShadowEffect Color="Gray" ShadowDepth="2" BlurRadius="8" Opacity="0.2"/>
                 </Border.Effect>
-                <localControl:CustomMarkdownViewer x:Name="MarkdownViewer" 
-                                            Margin="15"
-                                            VerticalAlignment="Stretch"
-                                            HorizontalAlignment="Stretch"/>
+                <renderer:MarkdownHtmlControl x:Name="MarkdownViewer" 
+                                              VerticalAlignment="Stretch"
+                                              HorizontalAlignment="Stretch"/>
             </Border>
         </Grid>
 
