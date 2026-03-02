@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.IO;
+using System.Windows;
 
 namespace MarkdownReader;
 
@@ -7,4 +8,9 @@ namespace MarkdownReader;
 /// </summary>
 public partial class App : Application
 {
+    private void Application_Startup(object sender, StartupEventArgs e)
+    {
+        var mainWindow = new MainWindow();
+        mainWindow.Show();
+    }
 }

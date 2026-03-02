@@ -11,6 +11,7 @@
 ### 📂 文件操作
 - 支持打开 `.md` 和 `.markdown` 文件
 - 快捷键 `Ctrl+O` 快速打开文件
+- 文件关联：双击 .md 文件直接打开
 - 一键刷新当前文件内容
 
 ### 📑 目录导航
@@ -20,11 +21,17 @@
 - 支持隐藏/显示侧边栏
 
 ### 🔗 智能链接
-- 按住 `Ctrl` 键点击链接：
+- 点击链接自动处理：
   - **网页链接** → 自动打开浏览器
   - **Markdown 文件** → 在阅读器中打开
   - **其他文件** → 使用系统默认程序打开
 - 支持相对路径解析
+
+### 🖼️ 完美渲染
+- 基于 WebView2 的 HTML 渲染引擎
+- 支持所有标准 Markdown 语法
+- 支持本地图片显示（包括中文文件名）
+- 自动暗色模式（跟随系统主题）
 
 ### 🎨 简洁界面
 - 现代化蓝色主题设计
@@ -37,12 +44,12 @@
 |--------|------|
 | `Ctrl+O` | 打开文件 |
 | `Ctrl+B` | 切换侧边栏 |
-| `F5` | 刷新文件 |
 
 ## 系统要求
 
 - Windows 10/11
 - .NET 10.0 Runtime
+- WebView2 Runtime (Windows 10/11 自带)
 
 ## 安装与运行
 
@@ -70,23 +77,43 @@ dotnet build -c Release
 dotnet publish -c Release -r win-x64 --self-contained
 ```
 
+### 文件关联
+
+要在 Windows 中将 .md 文件关联到此程序：
+
+**方法一：图形界面**
+1. 右键任意 .md 文件 → "打开方式" → "选择其他应用"
+2. 点击"更多应用" → 找到 MarkdownReader.exe
+3. 勾选"始终使用此应用打开 .md 文件"
+4. 点击"确定"
+
+**方法二：命令行（管理员权限）**
+```cmd
+assoc .md=MarkdownFile
+ftype MarkdownFile="C:\path\to\MarkdownReader.exe" "%1"
+```
+
 ## 技术栈
 
 - **[WPF](https://docs.microsoft.com/dotnet/desktop/wpf/)** - Windows 桌面应用框架
 - **[Markdig](https://github.com/xoofx/markdig)** - 快速、强大的 Markdown 解析库
-- **[Markdig.Wpf](https://github.com/xoofx/markdig.wpf)** - Markdig 的 WPF 渲染扩展
+- **[WebView2](https://docs.microsoft.com/microsoft-edge/webview2/)** - 微软 Edge WebView2 控件
 
 ## 项目结构
 
 ```
 MarkdownReader/
-├── MainWindow.xaml          # 主窗口界面
-├── MainWindow.xaml.cs       # 主窗口逻辑
-├── Models/
-│   └── HeadingItem.cs       # 标题数据模型
-├── Controls/
-│   └── CustomMarkdownViewer.cs  # 自定义 Markdown 控件
-└── App.xaml                 # 应用程序入口
+├── MarkdownReader/
+│   ├── App.xaml / App.xaml.cs       # 应用程序入口
+│   ├── MainWindow.xaml             # 主窗口界面
+│   ├── MainWindow.xaml.cs          # 主窗口逻辑
+│   └── Models/
+│       └── HeadingItem.cs           # 标题数据模型
+├── MarkdownHtmlRenderer/
+│   ├── MarkdownHtmlControl.xaml     # 自定义 Markdown 渲染控件
+│   ├── MarkdownHtmlControl.xaml.cs  # 控件逻辑
+│   └── MarkdownHtmlRenderer.csproj  # 类库项目配置
+└── MarkdownReader.slnx              # 解决方案文件
 ```
 
 ## 截图预览
@@ -106,9 +133,24 @@ MarkdownReader/
 │  └─────────┘  │    - 表格 等...            │ │
 │               └────────────────────────────┘ │
 ├──────────────────────────────────────────────┤
-│  就绪                        🔄📑 README.md  │
+│  就绪                        ◀🔄 README.md  │
 └──────────────────────────────────────────────┘
 ```
+
+## 核心功能说明
+
+### WebView2 渲染
+使用 WebView2 控件渲染 HTML，相比传统 WPF 控件：
+- 更好的 CSS 样式支持
+- 支持暗色模式
+- 更准确的 Markdown 渲染
+- 支持复杂表格、代码高亮等
+
+### 虚拟主机映射
+通过 WebView2 的虚拟主机功能，安全地加载本地资源：
+- 图片支持相对路径
+- 中文文件名自动解码
+- 链接智能识别和处理
 
 ## 许可证
 
@@ -117,3 +159,10 @@ MarkdownReader/
 ## 贡献
 
 欢迎提交 Issue 和 Pull Request！
+
+### 开发指南
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 开启 Pull Request

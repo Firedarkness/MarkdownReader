@@ -25,6 +25,29 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         DataContext = this;
+        
+        // 加载启动时传入的文件
+        LoadStartupFile();
+    }
+
+    /// <summary>
+    /// 加载启动参数中的文件
+    /// </summary>
+    private void LoadStartupFile()
+    {
+        var args = Environment.GetCommandLineArgs();
+        if (args.Length > 1)
+        {
+            var filePath = args[1];
+            if (File.Exists(filePath))
+            {
+                var ext = Path.GetExtension(filePath).ToLowerInvariant();
+                if (ext == ".md" || ext == ".markdown")
+                {
+                    LoadMarkdownFile(filePath);
+                }
+            }
+        }
     }
 
     private void OpenCommand_Executed(object sender, ExecutedRoutedEventArgs e)
